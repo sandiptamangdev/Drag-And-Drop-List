@@ -4,57 +4,76 @@
     box-sizing: border-box;
 }
 
+:root {
+    --color-1:#333;
+    --color-2: #555;
+    --color-3: #fff;
+    --color-4: #999;
+}
+
 body, html {
     height: 100%;
 }
 
 h1 {
     text-align: center;
-    margin-bottom: 2rem;
+    background-color: var(--color-1);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
 }
 
 body {
     font-family: monospace;
-    background-color: red;
+    background-color: #333;
 }
 
 main {
     max-width: 768px;
     margin: 0 auto;
-    background-color: blue;
+    background-color: var(--color-1);
     padding: 1rem;
     min-height: 100%;
+    /* border: 2px solid var(--color-4); */
 }
 
 section {
-    background-color: white;
-    padding: 20px;
+    display: grid;
+    grid-template-rows: 100px auto;
+    background-color: var(--color-2);
+    /* border: 2px solid var(--color-4); */
 }
 
 ul {
-    display: flex;
+    display: grid;
+    padding: 1rem;
     gap: 1rem;
     flex-direction: column;
+    background-color: var(--color-1);
+    
 }
 
 li {
     padding: 0.8rem 0.5rem;
-    background-color: purple;
+    background-color: var(--color-2);
     color: white;
     list-style: none;
     display: flex;
     align-items: center;
     gap: 1rem;
-    /* border-radius: 1rem; */
+    border: 2px solid var(--color-4);
+    cursor: grab;
 }
 
-button {
+/* button {
     cursor: grab;
     display: flex;
     align-items: center;
     justify-content: center;
     border: none;
-    background-color: transparent;
+    background-color: var(--color-2);
     color: white;
-}
+} */
 
