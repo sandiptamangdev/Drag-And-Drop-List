@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pointer Drag & Drop — Single File</title>
+  <style>
+    :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;box-sizing:border-box}
+    *{box-sizing:inherit}
+    body{display:flex;gap:24px;padding:32px;background:#f6f7fb}
+    .board{display:flex;gap:24px;align-items:flex-start}
+    .list {
+      width:260px;
+      min-height:220px;
+      padding:12px;
+      border-radius:8px;
+      background:#fff;
+      box-shadow:0 6px 18px rgba(15,15,30,0.06);
+      border:1px solid rgba(15,15,30,0.06);
+    }
+    .list h3{margin:0 0 8px 0;font-size:14px;color:#222}
+    .item {
+      padding:10px 12px;
+      margin:8px 0;
+      background:#eef2ff;
+      border-radius:6px;
+      cursor:grab;
+      user-select:none;
+      touch-action:none; /* IMPORTANT for pointer events on touch */
+      transition:box-shadow .12s, transform .08s;
+    }
+    .item:active{cursor:grabbing}
+    .ghost { opacity: 0.35; transform: scale(.98); }
+    .drop-target { outline: 2px dashed rgba(45,100,255,0.25); }
+  </style>
+</head>
+<body>
+  <main class="board" aria-label="drag-board">
+    <div class="list" id="list-1">
+      <h3>List A</h3>
+      <div class="item" data-id="1">Item 1</div>
+      <div class="item" data-id="2">Item 2</div>
+      <div class="item" data-id="3">Item 3</div>
+    </div>
+
+    <div class="list" id="list-2">
+      <h3>List B</h3>
+      <div class="item" data-id="4">Item 4</div>
+      <div class="item" data-id="5">Item 5</div>
+    </div>
+  </main>
+
+  <script>
+  (function () {
+    // Globals for current drag session
+    let dragged = null;
+    let startX = 0;
+    let startY = 0;
+    let offsetX = 0;
+    let offsetY = 0;
+    let originalParent = null;
+    let originalNextSibling = null;
+
+    // lists used as drop targets
+    const lists = Array.from(document.querySelectorAll('.list'));
+
+    // delegate pointerdown to items using event capturing on document
+    document.addEventListener('pointerdown', (e) => {
+      const target = e.target.closest('.item');
+      if (!target) return;
+
+      // begin drag
+      e.preventDefault();
+
+      dragged = target;
+      originalParent = dragged.parentElement;
+      originalNextSibling = dragged.nextSibling; // used to restore if needed
+
+      const rect = dragged.getBoundingClientRect();
+      startX = rect.left;
+      startY = rect.top;
+      offsetX = e.clientX - rect.left;
+      offsetY = e.clientY - rect.top;
+
+      // visual: ghost and lifting
+      dragged.classList.add('ghost');
+
+      // move element to body so absolute coords are easy
+      document.body.appendChild(dragged);
+
+      // set absolute layout for dragging
+      Object.assign(dragged.style, {
+        position: 'absolute',
+        left: `${startX}px`,
+        top: `${startY}px`,
+        width: `${rect.width}px`,
+        zIndex: 9999,
+        margin: 0,
+        transform: 'translateZ(0)'
+      });
+
+      // capture pointer so we get pointermove/up even if pointer leaves element
+      dragged.setPointerCapture(e.pointerId);
+
+      // handlers are defined here so we can remove them later (same ref)
+      const handleMove = (moveEvent) => {
+        moveEvent.preventDefault();
+        const x = moveEvent.clientX - offsetX;
+        const y = moveEvent.clientY - offsetY;
+
+        dragged.style.left = x + 'px';
+        dragged.style.top = y + 'px';
+
+        // highlight candidate drop list under pointer
+        lists.forEach(lst => {
+          const r = lst.getBoundingClientRect();
+          const inside =
+            moveEvent.clientX >= r.left &&
+            moveEvent.clientX <= r.right &&
+            moveEvent.clientY >= r.top &&
+            moveEvent.clientY <= r.bottom;
+          lst.classList.toggle('drop-target', inside);
+        });
+      };
+
+      const handleUp = (upEvent) => {
+        // release pointer capture
+        try { dragged.releasePointerCapture(upEvent.pointerId); } catch (err) { /* ignore */ }
+
+        // determine which list (if any) contains the drop point
+        let droppedInto = null;
+        lists.forEach(lst => {
+          const r = lst.getBoundingClientRect();
+          const inside =
+            upEvent.clientX >= r.left &&
+            upEvent.clientX <= r.right &&
+            upEvent.clientY >= r.top &&
+            upEvent.clientY <= r.bottom;
+          if (inside) droppedInto = lst;
+          lst.classList.remove('drop-target');
+        });
+
+        // If dropped into a list, append; otherwise restore to original place
+        if (droppedInto) {
+          droppedInto.appendChild(dragged);
+        } else {
+          // restore where it was (before dragging)
+          if (originalNextSibling && originalNextSibling.parentElement === originalParent) {
+            originalParent.insertBefore(dragged, originalNextSibling);
+          } else {
+            originalParent.appendChild(dragged);
+          }
+        }
+
+        // cleanup styles and classes
+        dragged.classList.remove('ghost');
+        dragged.style.position = '';
+        dragged.style.left = '';
+        dragged.style.top = '';
+        dragged.style.width = '';
+        dragged.style.zIndex = '';
+        dragged.style.margin = '';
+        dragged.style.transform = '';
+
+        // remove attached handlers
+        dragged.removeEventListener('pointermove', handleMove);
+        dragged.removeEventListener('pointerup', handleUp);
+
+        // reset globals
+        dragged = null;
+        originalParent = null;
+        originalNextSibling = null;
+      };
+
+      // attach move & up on the dragged element (we captured pointer so it's fine)
+      dragged.addEventListener('pointermove', handleMove);
+      dragged.addEventListener('pointerup', handleUp);
+    });
+  })();
+  </script>
+</body>
+</html>
